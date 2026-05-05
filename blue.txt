@@ -1,0 +1,65 @@
+#include "stm32f4xx.h"
+void UART2_Init(void);
+void GPIO_Init(void);
+void UART2_Transmit(char data);
+char UART2_Receive(void);
+int main(void)
+{
+UART2_Init(); // Initialize Bluetooth UART
+GPIO_Init(); // Initialize LED pin
+char data;
+while (1)
+{
+data = UART2_Receive(); // Receive data from mobile
+if (data == '1')
+{
+GPIOA->ODR |= (1 << 5); // LED ON (PA5)
+UART2_Transmit('1'); // Send confirmation
+}
+else if (data == '0')
+{
+GPIOA->ODR &= ~(1 << 5); // LED OFF
+UART2_Transmit('0'); // Send confirmation
+}
+}
+}
+// ================= UART2 Initialization =================
+void UART2_Init(void)
+{
+// Enable clocks
+RCC->AHB1ENR |= (1 << 0); // GPIOA clock enable
+RCC->APB1ENR |= (1 << 17); // USART2 clock enable
+// Set PA2 (TX) and PA3 (RX) to Alternate Function
+GPIOA->MODER &= ~(0xF << 4);
+GPIOA->MODER |= (0xA << 4); // AF mode
+// Set AF7 (USART2) for PA2, PA3
+GPIOA->AFR[0] |= (7 << 8) | (7 << 12);
+// Optional: Pull-up resistors
+GPIOA->PUPDR |= (1 << 6) | (1 << 8);
+// Baud rate = 9600 (for 16 MHz clock)
+USART2->BRR = 0x0683;
+// Enable transmitter and receiver
+USART2->CR1 |= (1 << 3) | (1 << 2);
+// Enable USART2
+USART2->CR1 |= (1 << 13);
+}
+// ================= GPIO Initialization =================
+void GPIO_Init(void)
+{
+RCC->AHB1ENR |= (1 << 0); // Enable GPIOA clock
+// Set PA5 as output (LED)
+GPIOA->MODER &= ~(3 << 10);
+GPIOA->MODER |= (1 << 10);
+}
+// ================= UART Transmit =================
+void UART2_Transmit(char data)
+{
+while (!(USART2->SR & (1 << 7))); // Wait until TXE is set
+USART2->DR = data;
+}
+// ================= UART Receive =================
+char UART2_Receive(void)
+{
+while (!(USART2->SR & (1 << 5))); // Wait until RXNE is set
+return USART2->DR;
+}

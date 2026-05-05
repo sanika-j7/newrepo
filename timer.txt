@@ -1,0 +1,41 @@
+#include "stm32f4xx.h"
+void TIM2_delay_ms(uint32_t ms);
+int main(void)
+{
+// 1. Enable GPIOA clock
+RCC->AHB1ENR |= (1 << 0);
+// 2. Set PA0–PA7 as output
+for(int i = 0; i < 8; i++)
+{
+GPIOA->MODER &= ~(3 << (i * 2));
+GPIOA->MODER |= (1 << (i * 2));
+}
+// 3. Enable TIM2 clock
+RCC->APB1ENR |= (1 << 0);
+while(1)
+{
+// Forward
+for(int i = 0; i < 8; i++)
+{
+GPIOA->ODR = (1 << i);
+TIM2_delay_ms(200);
+}
+// Reverse
+for(int i = 6; i >= 1; i--)
+{
+GPIOA->ODR = (1 << i);
+TIM2_delay_ms(200);
+}
+}
+}
+void TIM2_delay_ms(uint32_t ms)
+{
+TIM2->CR1 = 0; // stop timer
+TIM2->PSC = 16000 - 1; // 16 MHz → 1 ms tick
+TIM2->ARR = ms - 1;
+TIM2->CNT = 0;
+TIM2->SR = 0; // clear flag
+TIM2->CR1 |= (1 << 0); // start
+while (!(TIM2->SR & 1)); // wait for UIF
+TIM2->SR &= ~(1 << 0); // clear UIF
+}

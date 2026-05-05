@@ -1,0 +1,60 @@
+#include "stm32f4xx.h"
+#include <string.h>
+void UART2_Init(void);
+void UART2_SendChar(char c);
+void UART2_SendString(char *str);
+void delay_ms(int ms);
+//---------------- UART INIT ----------------//
+void UART2_Init(void)
+{
+RCC->AHB1ENR |= (1<<0); // Enable GPIOA clock
+RCC->APB1ENR |= (1<<17); // Enable USART2 clock
+// PA2 -> TX, PA3 -> RX
+GPIOA->MODER |= (2<<4) | (2<<6); // Alternate function
+GPIOA->AFR[0] |= (7<<8) | (7<<12); // AF7 (USART2)
+USART2->BRR = 0x0683; // 9600 baud (for 16MHz clock)
+USART2->CR1 |= (1<<13) | (1<<3) | (1<<2);
+// UE, TE, RE
+}
+//---------------- UART SEND ----------------//
+void UART2_SendChar(char c)
+{
+while(!(USART2->SR & (1<<7))); // TXE
+USART2->DR = c;
+}
+void UART2_SendString(char *str)
+{
+while(*str)
+{
+UART2_SendChar(*str++);
+}
+}
+//---------------- DELAY ----------------//
+void delay_ms(int ms)
+{
+for(int i=0; i<ms*4000; i++);
+}
+//---------------- MAIN ----------------//
+int main(void)
+{
+UART2_Init();
+delay_ms(3000);
+// Check communication
+UART2_SendString("AT\r\n");
+delay_ms(2000);
+// ----------- MAKE CALL ----------- //
+UART2_SendString("ATD8806911685;\r\n"); // Replace number
+delay_ms(25000); // Call duration (15 sec)
+// ----------- CUT CALL ----------- //
+UART2_SendString("ATH\r\n");
+delay_ms(3000);
+// ----------- SEND SMS ----------- //
+UART2_SendString("AT+CMGF=1\r\n"); // Text mode
+delay_ms(4000);
+UART2_SendString("AT+CMGS=\"8806911685\"\r\n");
+delay_ms(4000);
+UART2_SendString("Hello from STM32 GSM Module");
+UART2_SendChar(26); // CTRL+Z to send SMS
+while(1);
+}
+

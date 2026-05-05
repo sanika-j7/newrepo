@@ -1,0 +1,61 @@
+while (1)
+{
+/* USER CODE END WHILE */
+HAL_GPIO_WritePin(GPIOD, LED4_Pin|LED3_Pin|LED2_Pin|LED1_Pin,
+GPIO_PIN_RESET);
+HAL_Delay(1000);
+HAL_GPIO_WritePin(GPIOD, LED4_Pin, GPIO_PIN_SET);
+HAL_Delay(1000);
+HAL_GPIO_WritePin(GPIOD, LED4_Pin|LED3_Pin|LED2_Pin|LED1_Pin,
+GPIO_PIN_RESET);
+HAL_Delay(1000);
+HAL_GPIO_WritePin(GPIOD,LED3_Pin, GPIO_PIN_SET);
+HAL_Delay(1000);
+HAL_GPIO_WritePin(GPIOD, LED4_Pin|LED3_Pin|LED2_Pin|LED1_Pin,
+GPIO_PIN_RESET);
+HAL_Delay(1000);
+HAL_GPIO_WritePin(GPIOD,LED2_Pin, GPIO_PIN_SET);
+HAL_Delay(1000);
+HAL_GPIO_WritePin(GPIOD, LED4_Pin|LED3_Pin|LED2_Pin|LED1_Pin,
+GPIO_PIN_RESET);
+HAL_Delay(1000);
+HAL_GPIO_WritePin(GPIOD, LED1_Pin, GPIO_PIN_SET);
+HAL_Delay(1000);
+/* USER CODE BEGIN 3 */
+}
+
+
+
+
+#include "stm32f4xx.h"
+void delay(volatile uint32_t t) {
+ while(t--);
+}
+int main(void) {
+ RCC->AHB1ENR |= (1 << 0);
+ GPIOA->MODER &= ~(0xFFFF);
+ GPIOA->MODER |= (0x5555);
+ GPIOA->PUPDR &= ~(0xFFFF);
+ while (1) {
+ GPIOA->ODR &= ~0xFF; // all off
+ delay(500000);
+ GPIOA->ODR |= (1<<0) | (1<<7);
+ delay(300000);
+ GPIOA->ODR |= (1<<1) | (1<<6);
+ delay(300000);
+ GPIOA->ODR |= (1<<2) | (1<<5);
+ delay(300000);
+ GPIOA->ODR |= (1<<3) | (1<<4);
+ delay(800000);
+ // -------- Curtain Closing --------
+ GPIOA->ODR &= ~((1<<3) | (1<<4));
+ delay(300000);
+ GPIOA->ODR &= ~((1<<2) | (1<<5));
+ delay(300000);
+ GPIOA->ODR &= ~((1<<1) | (1<<6));
+ delay(300000);
+ GPIOA->ODR &= ~((1<<0) | (1<<7));
+ delay(800000);
+ }
+}
+

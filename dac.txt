@@ -1,0 +1,39 @@
+#include "stm32f4xx.h"
+void delay(void);
+void DAC_Init(void);
+int main(void)
+{
+DAC_Init();
+// 5 staircase values
+uint16_t steps=0;
+while(1)
+{
+// Staircase up
+for(int i = 0; i < 8; i++)
+{
+DAC->DHR12R1 = steps; steps+=511.8;
+delay();
+}
+// Staircase down
+for(int i = 7; i >= 0; i--)
+{
+DAC->DHR12R1 = steps;steps-=511.8;
+delay();
+}
+}
+}
+void DAC_Init(void)
+{
+// Enable GPIOA Clock
+RCC->AHB1ENR |= (1<<0);
+// Set PA4 as Analog mode
+GPIOA->MODER |= (3<<8);
+// Enable DAC clock
+RCC->APB1ENR |= (1<<29);
+// Enable DAC channel 1
+DAC->CR |= (1<<0);
+}
+void delay(void)
+{
+for(volatile int i = 0; i < 100; i++);
+}

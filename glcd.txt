@@ -1,0 +1,156 @@
+#include "stm32f407xx.h"
+/* -------- Control Pin Definitions (PC0-PC5) -------- */
+#define RS 0
+#define RW 1
+#define EN 2
+#define CS1 3
+#define CS2 4
+#define RST 5
+/* ---------------- Delay ---------------- */
+void delay(void)
+{
+for(volatile int i=0;i<5000;i++);
+}
+/* ---------------- GPIO Init ---------------- */
+void GLCD_GPIO_Init(void)
+{
+RCC->AHB1ENR |= 0x0C;
+for(int i=0;i<8;i++)
+{
+GPIOD->MODER &= ~(3<<(i*2));
+GPIOD->MODER |= (1<<(i*2));
+}
+for(int i=0;i<=5;i++)
+{
+GPIOC->MODER &= ~(3<<(i*2));
+GPIOC->MODER |= (1<<(i*2));
+}
+}
+/* ---------------- Enable Pulse ---------------- */
+void GLCD_Enable(void)
+{
+GPIOC->ODR |= (1<<EN);
+delay();
+GPIOC->ODR &= ~(1<<EN);
+delay();
+}
+/* ---------------- Chip Select ---------------- */
+void GLCD_SelectChip(unsigned char chip)
+{
+if(chip==1)
+{
+GPIOC->ODR |= (1<<CS1);
+GPIOC->ODR &= ~(1<<CS2);
+}
+else
+{
+GPIOC->ODR |= (1<<CS2);
+GPIOC->ODR &= ~(1<<CS1);
+}
+}
+/* ---------------- Send Command ---------------- */
+void GLCD_Command(unsigned char cmd,unsigned char chip)
+{
+GLCD_SelectChip(chip);
+GPIOD->ODR &= 0xFF00;
+GPIOD->ODR |= cmd;
+GPIOC->ODR &= ~(1<<RS);
+GPIOC->ODR &= ~(1<<RW);
+GLCD_Enable();
+}
+/* ---------------- Send Data ---------------- */
+void GLCD_Data(unsigned char data,unsigned char chip)
+{
+GLCD_SelectChip(chip);
+GPIOD->ODR &= 0xFF00;
+GPIOD->ODR |= data;
+GPIOC->ODR |= (1<<RS);
+GPIOC->ODR &= ~(1<<RW);
+GLCD_Enable();
+}
+/* ---------------- GLCD Init ---------------- */
+void GLCD_Init(void)
+{
+GPIOC->ODR |= (1<<RST);
+GPIOC->ODR |= (1<<CS1);
+GPIOC->ODR |= (1<<CS2);
+GPIOC->ODR &= ~(1<<RS);
+GPIOC->ODR &= ~(1<<RW);
+GPIOC->ODR &= ~(1<<EN);
+delay();
+GLCD_Command(0x3F,1);
+GLCD_Command(0x3F,2);
+GLCD_Command(0x40,1);
+GLCD_Command(0x40,2);
+GLCD_Command(0xB8,1);
+GLCD_Command(0xB8,2);
+}
+/* ---------------- Set Page ---------------- */
+void GLCD_SetPage(unsigned char page,unsigned char chip)
+{
+GLCD_Command(0xB8 | page,chip);
+}
+/* ---------------- Set Column ---------------- */
+void GLCD_SetColumn(unsigned char column,unsigned char chip)
+{
+GLCD_Command(0x40 | column,chip);
+}
+/* ---------------- Draw Equal Sign (100px length) ---------------- */
+/* ---------------- Draw Equal Sign on CS1 ---------------- */
+void GLCD_DrawEqual_Left(void)
+{
+int j;
+/* Upper Line : Pages 2 & 3 (≈20 pixel thickness) */
+for(int p=2;p<=3;p++)
+{
+GLCD_SetPage(p,1);
+for(j=10;j<=59;j++)
+{
+GLCD_SetColumn(j,1);
+GLCD_Data(0x00,1);
+}
+}
+/* Lower Line : Pages 5 & 6 */
+for(int p=5;p<=6;p++)
+{
+GLCD_SetPage(p,1);
+for(j=10;j<=59;j++)
+{
+GLCD_SetColumn(j,1);
+GLCD_Data(0x00,1);
+}
+}
+}
+/* ---------------- MAIN ---------------- */
+int main(void)
+{
+GLCD_GPIO_Init();
+GLCD_Init();
+GLCD_DrawEqual_Left(); // = on CS1 (50 pixels length)
+while(1)
+{
+}
+}
+
+
+void GLCD_DisplayImage(void)
+{
+int page,col;
+int k=0;
+for(page=0;page<8;page++)
+{
+GLCD_SetPage(page,1);
+GLCD_SetColumn(0,1);
+for(col=0;col<64;col++)
+{
+GLCD_Data(image[k++],1);
+}
+GLCD_SetPage(page,2);
+GLCD_SetColumn(0,2);
+for(col=0;col<64;col++)
+{
+GLCD_Data(image[k++],2);
+}
+}
+}
+
